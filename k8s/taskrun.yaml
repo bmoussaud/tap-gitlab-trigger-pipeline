@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitlab-token
+  namespace: tap-tasks
+type: Opaque
+stringData:
+  GITLAB_TOKEN: ${GITLAB_TOKEN}
+  TRIGGER_TOKEN: ${TRIGGER_TOKEN}
+---
+apiVersion: secretgen.carvel.dev/v1alpha1
+kind: SecretImport
+metadata:
+  name: tap-install-registry-dockerconfig
+  namespace: tap-tasks
+spec:
+  fromNamespace: tap-operator
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tekton-default
+  namespace: tap-tasks
+secrets:
+  - name: tap-install-registry-dockerconfig
+imagePullSecrets:
+  - name: tap-install-registry-dockerconfig
+---
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  name: trigger-gitlab-pipeline-run
+  namespace: tap-tasks
+spec:
+  serviceAccountName: tekton-default
+  taskRef:
+    name: trigger-gitlab-pipeline
+  params:
+    - name: PROJECT_PATH
+      value: bmoussaud/playlist-service-springboot
