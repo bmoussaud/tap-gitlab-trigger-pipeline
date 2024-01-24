@@ -43,7 +43,16 @@ spec:
       type: string
       description: Name of the secret key holding the trigger token
       default: TRIGGER_TOKEN
+    - name: REGISTRY_TOKEN_SECRET
+      type: string
+      description: Name of the secret holding the registry-token.
+      default: registry-token
 
+  results:
+    #- description: Digest of the image just built.
+    #  name: image_digest
+    - description: Ref of the image just built.
+      name: image_ref
   steps:
     - name: trigger-gitlab-pipeline
       image: trigger-gitlab-pipeline
@@ -66,7 +75,7 @@ spec:
         echo "IMAGE         ${IMAGE}"
         echo "REGISTRY_HOSTNAME ${REGISTRY_HOSTNAME}"
         echo "REGISTRY_USERNAME ${REGISTRY_USERNAME}"
-        echo "REGISTRY_PASSWORD ${REGISTRY_PASSWORD}"
+        #echo "REGISTRY_PASSWORD ${REGISTRY_PASSWORD}"
         #echo "GITLAB_TOKEN        ${GITLAB_TOKEN}"
         #echo "TRIGGER_TOKEN        ${TRIGGER_TOKEN}"
 
@@ -112,6 +121,11 @@ spec:
                   ;;
 
             success)
+                  
+                  echo "Manage image outpput"
+                  image="$(params.image)"
+                  echo -n "${image}:latest" | tee "$(results.image_ref.path)"
+                  echo ""
                   echo "__Succeed Exit !"
                   exit 0
                   ;;
@@ -120,6 +134,9 @@ spec:
                   #echo "__Running"
                   ;;
 
+            pending)
+                  #echo "__Pending...."
+                  ;;
             *)
                   echo "Unknonw Status ${STATUS}...exit"
                   exit 1
@@ -127,6 +144,7 @@ spec:
             esac
             sleep 10
         done
+
       env:
         - name: GITLAB_TOKEN
           valueFrom:
@@ -141,17 +159,17 @@ spec:
         - name: REGISTRY_HOSTNAME
           valueFrom:
             secretKeyRef:
-              name: $(params.GITLAB_TOKEN_SECRET)
+              name: $(params.REGISTRY_TOKEN_SECRET)
               key: REGISTRY_HOSTNAME
         - name: REGISTRY_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: $(params.GITLAB_TOKEN_SECRET)
+              name: $(params.REGISTRY_TOKEN_SECRET)
               key: REGISTRY_PASSWORD
         - name: REGISTRY_USERNAME
           valueFrom:
             secretKeyRef:
-              name: $(params.GITLAB_TOKEN_SECRET)
+              name: $(params.REGISTRY_TOKEN_SECRET)
               key: REGISTRY_USERNAME
 ---
 apiVersion: kbld.k14s.io/v1alpha1

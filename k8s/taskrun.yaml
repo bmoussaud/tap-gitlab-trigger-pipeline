@@ -7,6 +7,14 @@ type: Opaque
 stringData:
   GITLAB_TOKEN: ${GITLAB_TOKEN}
   TRIGGER_TOKEN: ${TRIGGER_TOKEN}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: registry-token
+  namespace: tap-tasks
+type: Opaque
+stringData:
   REGISTRY_USERNAME: ${INSTALL_REGISTRY_USERNAME}
   REGISTRY_PASSWORD: ${INSTALL_REGISTRY_PASSWORD}
   REGISTRY_HOSTNAME: ${INSTALL_REGISTRY_HOSTNAME}

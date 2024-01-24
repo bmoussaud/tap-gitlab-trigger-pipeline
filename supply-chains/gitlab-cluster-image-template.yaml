@@ -1,0 +1,117 @@
+apiVersion: carto.run/v1alpha1
+kind: ClusterImageTemplate
+metadata:
+  name: gitlab-template
+spec:
+  imagePath: .status.taskResults[?(@.name=="image_ref")].value
+  lifecycle: tekton
+  params:
+    - default: default
+      name: serviceAccount
+    - default: {}
+      name: registry
+    - name: gitlab_project
+      default: inconnu/pasconnu
+  ytt: |
+    #@ load("@ytt:data", "data")
+    #@ load("@ytt:regexp", "regexp")
+
+    #@ def merge_labels(fixed_values):
+    #@   labels = {}
+    #@   if hasattr(data.values.workload.metadata, "labels"):
+    #@     exclusions = ["kapp.k14s.io/app", "kapp.k14s.io/association"]
+    #@     for k,v in dict(data.values.workload.metadata.labels).items():
+    #@       if k not in exclusions:
+    #@         labels[k] = v
+    #@       end
+    #@     end
+    #@   end
+    #@   labels.update(fixed_values)
+    #@   return labels
+    #@ end
+
+    #@ def param(key):
+    #@   if not key in data.values.params:
+    #@     return None
+    #@   end
+    #@   return data.values.params[key]
+    #@ end
+
+    #@ def maven_param(key):
+    #@   if not key in data.values.params["maven"]:
+    #@     return None
+    #@   end
+    #@   return data.values.params["maven"][key]
+    #@ end
+
+    #@ def maven_repository_url():
+    #@   if maven_param("repository") and "url" in maven_param("repository"):
+    #@     return maven_param("repository")["url"]
+    #@   elif param("maven_repository_url"):
+    #@     return param("maven_repository_url")
+    #@   else:
+    #@     return None
+    #@   end
+    #@ end
+
+    #@ def image():
+    #@   return "/".join([
+    #@    data.values.params.registry.server,
+    #@    data.values.params.registry.repository,
+    #@    "-".join([
+    #@      data.values.workload.metadata.name,
+    #@      data.values.workload.metadata.namespace,
+    #@    ])
+    #@   ])
+    #@ end
+
+    #@ def ca_cert_data():
+    #@   if "ca_cert_data" not in param("registry"):
+    #@     return ""
+    #@   end
+    #@
+    #@   return param("registry")["ca_cert_data"]
+    #@ end
+
+    #@ def correlationId():
+    #@   if hasattr(data.values.workload, "annotations") and hasattr(data.values.workload.annotations, "apps.tanzu.vmware.com/correlationid"):
+    #@     return data.values.workload.annotations["apps.tanzu.vmware.com/correlationid"]
+    #@   end
+    #@   url = ""
+    #@   if hasattr(data.values.workload.spec, "source"):
+    #@     if hasattr(data.values.workload.spec.source, "git"):
+    #@       url = data.values.workload.spec.source.git.url
+    #@     elif hasattr(data.values.workload.spec.source, "image"):
+    #@       url = data.values.workload.spec.source.image.split("@")[0]
+    #@     end
+    #@     url = url + "?sub_path=" + getattr(data.values.workload.spec.source, "subPath", "/")
+    #@   end
+    #@   if param("maven"):
+    #@     url = maven_repository_url() + "/" + maven_param("groupId").replace(".", "/") + "/" + maven_param("artifactId")
+    #@   end
+    #@   return url
+    #@ end
+    ---
+    apiVersion: tekton.dev/v1beta1
+    kind: TaskRun
+    metadata:
+      generateName: #@ data.values.workload.metadata.name + "-build-"
+      labels: #@ merge_labels({ "app.kubernetes.io/component": "build" })
+      annotations:
+        apps.tanzu.vmware.com/correlationid: #@ correlationId()
+    spec:
+      serviceAccountName: #@ data.values.params.serviceAccount
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: namespace
+            value: tap-tasks
+          - name: name
+            value: trigger-gitlab-pipeline
+      params:
+        - name: image
+          value: #@ image()      
+        - name: project_path
+          value: #@ data.values.params.gitlab_project

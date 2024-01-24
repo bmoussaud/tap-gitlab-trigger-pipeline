@@ -32,3 +32,6 @@ check-carvel:
 	$(foreach exec,$(CARVEL_BINARIES),\
 		$(if $(shell which $(exec)),,$(error "'$(exec)' not found. Carvel toolset is required. See instructions at https://carvel.dev/#install")))
 
+
+apply-supply-chain:
+	kubectl apply -f supply-chains
