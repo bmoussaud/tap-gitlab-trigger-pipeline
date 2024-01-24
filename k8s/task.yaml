@@ -16,8 +16,12 @@ spec:
     This `task` can be used to tigger a gitlab pipelne.
 
   params:
-    - name: PROJECT_PATH
+    - name: project_path
       description: ex bmoussaud/playlist-service-springboot
+      type: string
+      default: "empty"
+    - name: image
+      description: playlist-service-springboot
       type: string
       default: "empty"
     - name: BRANCH
@@ -39,15 +43,18 @@ spec:
       type: string
       description: Name of the secret key holding the trigger token
       default: TRIGGER_TOKEN
+
   steps:
     - name: trigger-gitlab-pipeline
       image: trigger-gitlab-pipeline
       script: |
         #!/usr/bin/env bash
 
-        PROJECT_PATH=$(params.PROJECT_PATH)
+        PROJECT_PATH=$(params.project_path)
         BRANCH=$(params.BRANCH)
         GITLAB_DOMAIN=$(params.GITLAB_DOMAIN)
+        IMAGE=$(params.image)
+
         #GITLAB_TOKEN=glpat-dqsdqsdqsdqsd
         #TRIGGER_TOKEN=glptt-dqsdqsdqdqsqs
 
@@ -56,6 +63,10 @@ spec:
         echo "GITLAB_DOMAIN ${GITLAB_DOMAIN}"
         echo "PROJECT_PATH  ${PROJECT_PATH}"
         echo "BRANCH        ${BRANCH}"
+        echo "IMAGE         ${IMAGE}"
+        echo "REGISTRY_HOSTNAME ${REGISTRY_HOSTNAME}"
+        echo "REGISTRY_USERNAME ${REGISTRY_USERNAME}"
+        echo "REGISTRY_PASSWORD ${REGISTRY_PASSWORD}"
         #echo "GITLAB_TOKEN        ${GITLAB_TOKEN}"
         #echo "TRIGGER_TOKEN        ${TRIGGER_TOKEN}"
 
@@ -66,7 +77,8 @@ spec:
         PROJECT_ID=$(jq -r .id ${OUT_FILE})
         echo "PROJECT_ID    ${PROJECT_ID}"
 
-        curl --silent --request POST --form token=${TRIGGER_TOKEN} --form ref=${BRANCH} "https://${GITLAB_DOMAIN}/api/v4/projects/${PROJECT_ID}/trigger/pipeline" >${OUT_FILE}
+        #set -x
+        curl --silent --request POST --form token=${TRIGGER_TOKEN} --form variables[CI_REGISTRY_IMAGE]=${IMAGE} --form variables[REGISTRY_USERNAME]=${REGISTRY_USERNAME} --form variables[REGISTRY_PASSWORD]=${REGISTRY_PASSWORD} --form variables[REGISTRY_HOSTNAME]=${REGISTRY_HOSTNAME} --form ref=${BRANCH} "https://${GITLAB_DOMAIN}/api/v4/projects/${PROJECT_ID}/trigger/pipeline" >${OUT_FILE}
 
         if [ 0 -eq $? ]; then
             STATUS=$(jq -r .status ${OUT_FILE})
@@ -126,6 +138,21 @@ spec:
             secretKeyRef:
               name: $(params.GITLAB_TOKEN_SECRET)
               key: $(params.TRIGGER_TOKEN_SECRET_KEY)
+        - name: REGISTRY_HOSTNAME
+          valueFrom:
+            secretKeyRef:
+              name: $(params.GITLAB_TOKEN_SECRET)
+              key: REGISTRY_HOSTNAME
+        - name: REGISTRY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: $(params.GITLAB_TOKEN_SECRET)
+              key: REGISTRY_PASSWORD
+        - name: REGISTRY_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: $(params.GITLAB_TOKEN_SECRET)
+              key: REGISTRY_USERNAME
 ---
 apiVersion: kbld.k14s.io/v1alpha1
 kind: Config

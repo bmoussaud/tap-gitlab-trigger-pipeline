@@ -7,6 +7,9 @@ type: Opaque
 stringData:
   GITLAB_TOKEN: ${GITLAB_TOKEN}
   TRIGGER_TOKEN: ${TRIGGER_TOKEN}
+  REGISTRY_USERNAME: ${INSTALL_REGISTRY_USERNAME}
+  REGISTRY_PASSWORD: ${INSTALL_REGISTRY_PASSWORD}
+  REGISTRY_HOSTNAME: ${INSTALL_REGISTRY_HOSTNAME}
 ---
 apiVersion: secretgen.carvel.dev/v1alpha1
 kind: SecretImport
@@ -36,5 +39,7 @@ spec:
   taskRef:
     name: trigger-gitlab-pipeline
   params:
-    - name: PROJECT_PATH
-      value: bmoussaud/playlist-service-springboot
+    - name: project_path
+      value: bmoussaud/springboot-demo
+    - name: image
+      value: akseutap8registry.azurecr.io/springboot-demo

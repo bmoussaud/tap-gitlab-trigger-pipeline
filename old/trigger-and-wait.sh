@@ -22,7 +22,7 @@ curl --silent --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" https://gitlab.com/api/v
 PROJECT_ID=$(jq -r .id ${OUT_FILE})
 echo "PROJECT_ID    ${PROJECT_ID}"
 
-curl --silent --request POST --form token=${TRIGGER_TOKEN} --form ref=${BRANCH} "https://${GITLAB_DOMAIN}/api/v4/projects/${PROJECT_ID}/trigger/pipeline" >${OUT_FILE}
+curl --silent --request POST --form token=${TRIGGER_TOKEN} --form variables[CI_REGISTRY_IMAGE]="valuefromcli" --form ref=${BRANCH} "https://${GITLAB_DOMAIN}/api/v4/projects/${PROJECT_ID}/trigger/pipeline" >${OUT_FILE}
 
 if [ 0 -eq $? ]; then
      STATUS=$(jq -r .status ${OUT_FILE})
