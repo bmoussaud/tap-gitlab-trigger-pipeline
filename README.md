@@ -63,3 +63,5 @@ spec:
     - name: gitlab_project                                 <<<<<< HERE>>>>>>
       value: bmoussaud/springboot-demo
 ```
+
+![SuppplyChainOutput](Output.png)
